@@ -1,0 +1,10 @@
+[
+  {
+    "id": "1",
+    "category": "Food",
+    "subCategory": "Groceries",
+    "amount": 5000,
+    "date": "2026-04-03",
+    "notes": "Weekly shopping"
+  }
+]

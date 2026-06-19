@@ -1,0 +1,325 @@
+.goals-page {
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.summary-card p {
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.goal-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.goal-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.goal-stats {
+  display: flex;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+
+.goal-stats span {
+  display: block;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
+}
+
+.progress-text {
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.secondary-btn {
+  margin-top: 16px;
+  width: 100%;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.goal-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.goal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid #eee;
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goal-values {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.progress {
+  height: 10px;
+  background: #ececec;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
+}
+
+.goal-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  width: 450px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.modal input,
+.modal textarea {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.7),
+    transparent
+  );
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Header */
+.skeleton-title {
+  width: 180px;
+  height: 32px;
+}
+
+.skeleton-button {
+  width: 140px;
+  height: 40px;
+}
+
+/* Cards */
+.skeleton-card {
+  padding: 20px;
+  min-height: 160px;
+}
+
+.skeleton-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+}
+
+.skeleton-label {
+  width: 100px;
+  height: 14px;
+  margin-bottom: 10px;
+}
+
+.skeleton-value {
+  width: 120px;
+  height: 30px;
+  margin-bottom: 20px;
+}
+
+.skeleton-progress {
+  width: 100%;
+  height: 8px;
+}
+
+/* Chart */
+.chart-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.skeleton-chart-title {
+  width: 220px;
+  height: 20px;
+  margin-bottom: 20px;
+}
+
+.skeleton-chart {
+  width: 100%;
+  height: 350px;
+}
+
+/* Goal Cards */
+.goal-card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.skeleton-goal-title {
+  width: 160px;
+  height: 24px;
+}
+
+.skeleton-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.skeleton-stat-label {
+  width: 60px;
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.skeleton-stat-value {
+  width: 90px;
+  height: 18px;
+}
+
+.skeleton-progress-bar {
+  width: 100%;
+  height: 10px;
+  margin-top: 16px;
+}
+
+.skeleton-progress-text {
+  width: 120px;
+  height: 14px;
+  margin-top: 12px;
+}
+
+.skeleton-btn {
+  flex: 1;
+  height: 38px;
+}
