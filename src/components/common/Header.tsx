@@ -73,6 +73,7 @@ export default function Header({ onMenuClick }: any) {
       </div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+        
         {auth.user && (
           <button onClick={() => auth.openFamilyManagement()} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
             <div style={{ width: 36, height: 36,color: "#4ade80", borderRadius: 18, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>

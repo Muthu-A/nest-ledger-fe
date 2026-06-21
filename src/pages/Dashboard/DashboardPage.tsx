@@ -97,7 +97,9 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<any[]>([]);
   // selected month is now stored in MonthContext so other pages react to it
   const { month: selectedMonth, setMonth: setSelectedMonth } = useMonth();
-  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
+  const [selectedYear, setSelectedYear] = useState<string>(
+    String(new Date().getFullYear()),
+  );
   // removed local recent-loaded state; using React Query states instead
 
   function normalizeToYYYYMM(raw?: string) {
@@ -124,75 +126,82 @@ export default function DashboardPage() {
   }
 
   // Use React Query hooks for summary, recent transactions and categories
-  const summaryQuery = useDashboardSummary(selectedMonth)
-  const recentQuery = useRecentTransactions(selectedMonth)
-  const categoriesQuery = useCategories()
+  const summaryQuery = useDashboardSummary(selectedMonth);
+  const recentQuery = useRecentTransactions(selectedMonth);
+  const categoriesQuery = useCategories();
 
   // derive loading from queries
-  const isLoading = summaryQuery.isLoading || categoriesQuery.isLoading
+  const isLoading = summaryQuery.isLoading || categoriesQuery.isLoading;
 
-  const monthlyExpensesQuery = useMonthlyExpenses(selectedYear)
+  const monthlyExpensesQuery = useMonthlyExpenses(selectedYear);
 
   // process summary data when available
   useEffect(() => {
-    const summary = summaryQuery.data
-    if (!summary) return
+    const summary = summaryQuery.data;
+    if (!summary) return;
 
-    let processed: any[] = []
+    let processed: any[] = [];
 
     if (summary && Array.isArray((summary as any).monthlySummary)) {
       processed = ((summary as any).monthlySummary || []).map((item: any) => ({
         ...item,
         yyyymm: normalizeToYYYYMM(item.month),
-      }))
+      }));
     } else if (Array.isArray(summary)) {
       processed = (summary as any).map((item: any) => ({
         ...item,
         yyyymm: normalizeToYYYYMM(item.month),
-      }))
+      }));
     } else if ((summary as any).month) {
-      processed = [{ ...(summary as any), yyyymm: normalizeToYYYYMM((summary as any).month) }]
+      processed = [
+        {
+          ...(summary as any),
+          yyyymm: normalizeToYYYYMM((summary as any).month),
+        },
+      ];
     }
 
-    setMonthlySummary(processed)
+    setMonthlySummary(processed);
 
     // set initial month if not set
-    const initialMonth = processed[0]?.yyyymm
-    if (initialMonth && !selectedMonth) setSelectedMonth(initialMonth)
-  }, [summaryQuery.data])
+    const initialMonth = processed[0]?.yyyymm;
+    if (initialMonth && !selectedMonth) setSelectedMonth(initialMonth);
+  }, [summaryQuery.data]);
 
   // process categories
   useEffect(() => {
-    const resp = categoriesQuery.data
-    if (!resp) return
+    const resp = categoriesQuery.data;
+    if (!resp) return;
 
     if (resp && Array.isArray((resp as any).categories)) {
-      const categoryObj = (resp as any).categories[0]
-      const formatted: any[] = []
+      const categoryObj = (resp as any).categories[0];
+      const formatted: any[] = [];
       for (const key in categoryObj) {
-        const cat = categoryObj[key]
+        const cat = categoryObj[key];
         if (cat && cat.subcategories) {
           for (const subLabel in cat.subcategories) {
             formatted.push({
               label: subLabel,
               items: cat.subcategories[subLabel],
               group: key,
-            })
+            });
           }
         }
       }
-      setCategories(formatted)
+      setCategories(formatted);
     } else {
-      setCategories([])
+      setCategories([]);
     }
-  }, [categoriesQuery.data])
+  }, [categoriesQuery.data]);
 
   // process recent transactions
   useEffect(() => {
-    const resp = recentQuery.data
-    if (!resp) return
-    setRecentTransactions((resp as any).recentTransactions || (resp as any) || [])
-  }, [recentQuery.data])
+    const resp = recentQuery.data;
+    if (!resp) return;
+    setRecentTransactions(
+      (resp as any).recentTransactions || (resp as any) || [],
+    );
+  }, [recentQuery.data]);
 
   // month changes are handled by React Query hooks (summaryQuery, recentQuery)
 
@@ -204,9 +213,17 @@ export default function DashboardPage() {
     [monthlySummary, selectedMonth],
   );
 
-  const chartData = (monthlyExpensesQuery.data && Array.isArray((monthlyExpensesQuery.data as any).monthlyExpenses)
-    ? (monthlyExpensesQuery.data as any).monthlyExpenses.map((item: any) => ({ month: item.month, amount: item.amount }))
-    : monthlySummary.map((item) => ({ month: item.month, amount: item.expense })))
+  const chartData =
+    monthlyExpensesQuery.data &&
+    Array.isArray((monthlyExpensesQuery.data as any).monthlyExpenses)
+      ? (monthlyExpensesQuery.data as any).monthlyExpenses.map((item: any) => ({
+          month: item.month,
+          amount: item.amount,
+        }))
+      : monthlySummary.map((item) => ({
+          month: item.month,
+          amount: item.expense,
+        }));
 
   const hasSummaryData = monthlySummary.length > 0;
 
@@ -240,8 +257,6 @@ export default function DashboardPage() {
     },
   ];
 
-  
-
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -257,27 +272,25 @@ export default function DashboardPage() {
           <p className="eyebrow">Dashboard</p>
           <h1 style={{ color: "var(--text)" }}>Monthly summary</h1>
         </div>
-      <div className="month-selector">
-  {/* month select removed in favor of DatePicker */}
-  <DatePicker
-  selected={
-    selectedMonth
-      ? new Date(`${selectedMonth}-01`)
-      : new Date()
-  }
-  onChange={(date) => {
-    if (!date) return;
+        <div className="month-selector">
+          {/* month select removed in favor of DatePicker */}
+          <DatePicker
+            selected={
+              selectedMonth ? new Date(`${selectedMonth}-01`) : new Date()
+            }
+            onChange={(date) => {
+              if (!date) return;
 
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, "0");
 
-    setSelectedMonth(`${year}-${month}`);
-  }}
-  showMonthYearPicker
-  dateFormat="MMMM yyyy"
-  className="month-picker"
-/>
-</div>
+              setSelectedMonth(`${year}-${month}`);
+            }}
+            showMonthYearPicker
+            dateFormat="MMMM yyyy"
+            className="month-picker"
+          />
+        </div>
       </div>
 
       <div className="summary-grid">
@@ -323,22 +336,22 @@ export default function DashboardPage() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                style={{ padding: '6px 8px', borderRadius: 6 }}
+                style={{ padding: "6px 8px", borderRadius: 6 }}
               >
                 {Array.from({ length: 6 }).map((_, idx) => {
-                  const y = new Date().getFullYear() - (5 - idx)
+                  const y = new Date().getFullYear() - (5 - idx);
                   return (
                     <option key={y} value={String(y)}>
                       {y}
                     </option>
-                  )
+                  );
                 })}
               </select>
             </div>
           </div>
           <div className="line-chart">
             {chartData.length ? (
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ overflowX: "auto" }}>
                 <div style={{ minWidth: 900 }}>
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart

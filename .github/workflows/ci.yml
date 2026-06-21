@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run integration tests
+        env:
+          CI: true
+        run: npm run test:integration
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    env:
+      MONGO_URI: 'mongodb+srv://muthuaspu:muthuaspu@cluster0.zibunyn.mongodb.net/familyexpenses?appName=Cluster0'
+      API_URL: 'http://localhost:5001/api/dashboard/summary'
+      FRONTEND_URL: 'http://localhost:5173'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Cypress E2E
+        uses: cypress-io/github-action@v5
+        with:
+          start: npm run start:e2e
+          wait-on: ${{ env.FRONTEND_URL }}
+          wait-on-timeout: 120000

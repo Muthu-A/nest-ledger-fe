@@ -4,21 +4,55 @@ import IncomeForm from "./IncomeForm";
 import Modal from "../../components/common/Modal";
 import { useIncome } from "../../hooks/useIncome";
 import { incomeService } from "../../services/incomeService";
+import { useMonth } from '../../context/MonthContext'
 import { formatCurrency } from "../../utils/currency";
 import { formatDate } from "../../utils/helpers";
 import type { Income } from "../../types/income";
 import IncomePageSkeleton from "./IncomePageSkeleton";
+import { useRealtime } from '../../context/RealtimeContext'
 
 export default function IncomePage() {
   const { backendIncome, loading } = useIncome();
+  const { incomes: realtimeIncomes } = useRealtime()
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editIncome, setEditIncome] = useState<Income | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    setIncomes(backendIncome);
+    // merge backend income with any realtime updates (prefer realtime items)
+    const byId: Record<string, Income> = {}
+    for (const b of backendIncome) byId[b.id] = b
+    for (const r of realtimeIncomes || []) {
+      if (!r) continue
+      const id = r.id ?? r._id ?? String(Date.now())
+      byId[id] = { ...(byId[id] || {}), ...r, id }
+    }
+    const merged = Object.values(byId).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    setIncomes(merged)
   }, [backendIncome]);
+
+  const { month } = useMonth()
+
+  // When realtime incomes arrive, refresh authoritative data from backend
+  useEffect(() => {
+    if (!realtimeIncomes) return
+    let active = true
+
+    ;(async () => {
+      try {
+        const data = await incomeService.getAll(month)
+        if (!active) return
+        setIncomes(data)
+      } catch (err) {
+        // ignore - keep current UI state
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [realtimeIncomes, month])
 
   async function handleCreate(income: any) {
     try {

@@ -107,9 +107,55 @@
   height: 42px;
   padding: 0 14px;
   border: 1px solid #d1d5db;
+  background-color: transparent;
+  color: black;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   width: 160px;
 }
+
+/* Ensure the datepicker calendar icon and any SVGs use black color */
+.month-picker,
+.month-picker * {
+  color: #000 !important;
+  fill: #000 !important;
+  stroke: #000 !important;
+}
+
+/* Target react-datepicker generated icons/wrappers */
+.react-datepicker-wrapper .react-datepicker__input-container svg,
+.react-datepicker__input-container svg {
+  color: #000 !important;
+  fill: #000 !important;
+  stroke: #000 !important;
+}
+
+/* Additional stronger selectors to cover react-datepicker navigation icons and indicators */
+.react-datepicker__input-container,
+.react-datepicker-wrapper,
+.react-datepicker__input-container input,
+.react-datepicker__input-container input.month-picker {
+  color: #000 !important;
+}
+
+.month-picker {
+  background-image: none !important;
+}
+
+.react-datepicker__navigation,
+.react-datepicker__navigation-icon,
+.react-datepicker__navigation--previous,
+.react-datepicker__navigation--next,
+.react-datepicker__navigation-icon::before {
+  color: #000 !important;
+  fill: #000 !important;
+  stroke: #000 !important;
+}
+
+/* webkit calendar indicator (for browsers that render native control) */
+.month-picker::-webkit-calendar-picker-indicator {
+  filter: invert(0) !important;
+}
+
