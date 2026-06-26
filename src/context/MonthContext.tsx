@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from 'react'
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react'
+import { setCurrentMonth, initializeMonthTracker } from '../utils/monthTracker'
 
 type MonthContextType = {
   month: string
@@ -16,6 +17,17 @@ function getCurrentMonth(): string {
 
 export function MonthProvider({ children }: { children: React.ReactNode }) {
   const [month, setMonth] = useState<string>(getCurrentMonth())
+  
+  // Track month changes for socket refetch
+  useEffect(() => {
+    setCurrentMonth(month)
+  }, [month])
+
+  // Initialize month tracker on first render
+  useEffect(() => {
+    initializeMonthTracker(month)
+  }, [])
+
   const value = useMemo(() => ({ month, setMonth }), [month])
   return <MonthContext.Provider value={value}>{children}</MonthContext.Provider>
 }

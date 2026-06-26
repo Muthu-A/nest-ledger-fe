@@ -6,6 +6,7 @@ export default function Header({ onMenuClick }: any) {
   const auth = useAuth()
 
   return (
+    <>
     <header className="app-header">
       <div className="header-left">
         <button
@@ -86,8 +87,8 @@ export default function Header({ onMenuClick }: any) {
           </button>
         )}
       </div>
-
       {/* Family management modal is rendered at layout level */}
     </header>
+    </>
   )
 }

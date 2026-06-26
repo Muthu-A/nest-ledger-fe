@@ -8,7 +8,7 @@ const incomeKeywords = ['salary', 'freelance', 'bonus', 'income', 'pay', 'payout
 
 function toNumber(str) {
   if (!str) return null
-  const cleaned = str.replace(/[,₹$\s]/g, '')
+  const cleaned = String(str).replace(/[,₹$€£¥\s]/g, '')
   const n = parseFloat(cleaned)
   return Number.isFinite(n) ? n : null
 }
@@ -21,11 +21,8 @@ function capitalizeWords(s) {
     .join(' ')
 }
 
-/**
- * Parse a single "Name Amount" pair like "Groceries 500"
- */
 function parsePair(segment) {
-  const m = segment.trim().match(/(.+?)\s+(\d+[\d,]*)$/)
+  const m = segment.trim().match(/(.+?)\s+([₹$€£¥]?\d+[\d,]*)$/)
   if (!m) return null
   const name = capitalizeWords(m[1])
   const amount = toNumber(m[2])
@@ -33,74 +30,93 @@ function parsePair(segment) {
   return { name, amount }
 }
 
-/**
- * Main parser
- * @param {string} transcript
- * @returns {{module: string, payload: any, raw: string}}
- */
-export function parseVoiceCommand(transcript) {
-  const raw = (transcript || '').trim()
-  const t = raw.toLowerCase()
+function looksLikeIncome(name) {
+  const lowerName = name.toLowerCase()
+  return incomeKeywords.some((k) => lowerName.includes(k))
+}
 
-  // Budget: "set groceries budget 8000" or "set groceries budget to 8000"
-  const budgetMatch = t.match(/set\s+(.+?)\s+budget(?:\s+to)?\s+(\d+[\d,]*)$/)
-  if (budgetMatch) {
-    return {
+function normalizeText(raw) {
+  return String(raw)
+    .trim()
+    .replace(/[₹$€£¥]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\band\b/gi, ',')
+}
+
+function extractCommands(text) {
+  const commands = []
+
+  const goalRegex = /create\s+(.+?)\s+goal(?:\s+to\s+(\d+[\d,]*))?/gi
+  text = text.replace(goalRegex, (_, goalName, amount) => {
+    commands.push({
+      module: 'goal',
+      payload: {
+        goalName: capitalizeWords(goalName),
+        targetAmount: toNumber(amount),
+      },
+    })
+    return ''
+  })
+
+  const budgetRegex = /(?:set|create)\s+(.+?)\s+budget(?:\s+to)?\s+(\d+[\d,]*)/gi
+  text = text.replace(budgetRegex, (_, category, amount) => {
+    commands.push({
       module: 'budget',
       payload: {
-        category: capitalizeWords(budgetMatch[1]),
-        amount: toNumber(budgetMatch[2]),
+        category: capitalizeWords(category),
+        amount: toNumber(amount),
       },
-      raw,
-    }
-  }
+    })
+    return ''
+  })
 
-  // Goal contribution: "add 5000 to Bike Goal" or "contributed 2000 to Vacation Goal"
-  const goalMatch = t.match(/(?:add|contribute|contributed)\s+(\d+[\d,]*)\s+(?:to|towards?)\s+(.+)$/)
-  if (goalMatch) {
-    return {
+  const contributionRegex = /(?:add|contribute|contributed)\s+(\d+[\d,]*)\s+(?:to|towards?)\s+(.+?)(?=$|,|\s+and\s+|\s+create\s+|\s+set\s+)/gi
+  text = text.replace(contributionRegex, (_, amount, goalName) => {
+    commands.push({
       module: 'goalContribution',
       payload: {
-        goalName: capitalizeWords(goalMatch[2]),
-        amount: toNumber(goalMatch[1]),
+        goalName: capitalizeWords(goalName),
+        amount: toNumber(amount),
       },
-      raw,
-    }
+    })
+    return ''
+  })
+
+  const remaining = normalizeText(text)
+  const pairs = []
+  let match
+  const pairRegex = /(.+?)\s+(\d+[\d,]*)(?=\s|$)/g
+  while ((match = pairRegex.exec(remaining)) !== null) {
+    const parsed = parsePair(match[0])
+    if (parsed) pairs.push(parsed)
   }
 
-  // Income: single pair where the name matches income keywords OR the phrase contains known income words
-  // Try to find a single pair
-  const singlePair = parsePair(raw)
-  if (singlePair) {
-    const lowerName = singlePair.name.toLowerCase()
-    const looksLikeIncome = incomeKeywords.some((k) => lowerName.includes(k)) || incomeKeywords.some((k) => t.includes(k))
-    if (looksLikeIncome) {
-      return {
+  if (pairs.length > 0) {
+    if (pairs.length === 1 && (looksLikeIncome(pairs[0].name) || incomeKeywords.some((k) => remaining.toLowerCase().includes(k)))) {
+      commands.push({
         module: 'income',
-        payload: { source: singlePair.name, amount: singlePair.amount },
-        raw,
-      }
+        payload: { source: pairs[0].name, amount: pairs[0].amount },
+      })
+    } else {
+      commands.push({
+        module: 'expense',
+        payload: pairs.map((p) => ({ category: p.name, amount: p.amount })),
+      })
     }
   }
 
-  // Expense: support multiple comma-separated entries like "Groceries 500, Petrol 1000"
-  // Split on commas or ' and '
-  const segments = raw.split(/,|\band\b/)
-  const expenses = segments
-    .map((s) => parsePair(s))
-    .filter(Boolean)
-    .map((p) => ({ category: p.name, amount: p.amount }))
+  return commands
+}
 
-  if (expenses.length > 0) {
-    return {
-      module: 'expense',
-      payload: expenses,
-      raw,
-    }
+export function parseVoiceCommand(transcript) {
+  const raw = (transcript || '').trim()
+  const commands = extractCommands(raw)
+
+  if (commands.length === 0) {
+    return { module: 'unknown', payload: null, raw }
   }
 
-  // Fallback: if nothing matched, return unknown
-  return { module: 'unknown', payload: null, raw }
+  return { module: 'batch', payload: commands, raw }
 }
 
 export default { parseVoiceCommand }

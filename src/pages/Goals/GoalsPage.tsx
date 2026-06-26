@@ -16,7 +16,6 @@ import CreateGoalModal from "./CreateGoalModal";
 import { goalService } from "../../services/goalService";
 import GoalsSkeleton from "./GoalsSkeleton";
 import SummaryCard from "../../components/common/SummaryCard";
-import { fi } from "zod/locales";
 
 const formatIndianAmount = (amount: number): string => {
   if (amount >= 10000000) {

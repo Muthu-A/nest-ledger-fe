@@ -54,13 +54,8 @@ process.on('SIGTERM', cleanup)
     const apiUrl = process.env.API_URL || apiEnv.API_URL || 'http://localhost:4000/api/dashboard/summary'
     const frontendUrl = process.env.FRONTEND_URL || apiEnv.FRONTEND_URL || 'http://localhost:5173'
 
-    console.log('Waiting for API at', apiUrl)
     await waitFor(apiUrl)
-    console.log('API ready')
-
-    console.log('Waiting for frontend at', frontendUrl)
     await waitFor(frontendUrl)
-    console.log('Frontend ready')
 
     // keep process alive while child processes run
     process.on('exit', cleanup)

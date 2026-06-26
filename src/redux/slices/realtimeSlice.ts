@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-type AnyObj = Record<string, any>
+type AnyObj = { id?: string } & Record<string, unknown>
 
 interface RealtimeState {
   expenses: AnyObj[]

@@ -16,57 +16,51 @@ import FamilySettingsPage from '../pages/Family/FamilySettingsPage'
 import ProtectedRoute from '../components/common/ProtectedRoute'
 import FamilyRoute from '../components/common/FamilyRoute'
 import useAuth from '../hooks/useAuth'
+import { RouteProvider } from '../context/RouteContext'
 
 function PostLoginRedirect() {
   const auth = useAuth()
-  console.log('[Routes] PostLoginRedirect auth:', { isAuthenticated: auth.isAuthenticated, familyId: auth.familyId })
   if (auth.isLoading) return null
   if (!auth.isAuthenticated) return <Navigate to="/login" replace />
   return auth.familyId ? <Navigate to="/dashboard" replace /> : <Navigate to="/family/setup" replace />
 }
 
 export default function AppRoutes() {
-  const auth = useAuth()
-
-  function HomeRedirect() {
-    if (auth.isLoading) return null
-    if (!auth.isAuthenticated) return <Navigate to="/login" replace />
-    return auth.familyId ? <Navigate to="/dashboard" replace /> : <Navigate to="/family/setup" replace />
-  }
-
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomeRedirect />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/post-login" element={<PostLoginRedirect />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/forgot" element={<ForgotPasswordPage />} />
-        <Route path="/reset" element={<ResetPasswordPage />} />
-        <Route path="/verify" element={<VerifyEmailPage />} />
+      <RouteProvider>
+        <Routes>
+          <Route path="/" element={<PostLoginRedirect />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/post-login" element={<PostLoginRedirect />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/reset" element={<ResetPasswordPage />} />
+          <Route path="/verify" element={<VerifyEmailPage />} />
 
-        {/* family setup - accessible only to authenticated users without a family */}
-        <Route element={<ProtectedRoute requireFamily={false} />}>
-          <Route path="/family/setup" element={<FamilySetupPage />} />
-        </Route>
+          {/* family setup - accessible only to authenticated users without a family */}
+          <Route element={<ProtectedRoute requireFamily={false} />}>
+            <Route path="/family/setup" element={<FamilySetupPage />} />
+          </Route>
 
-        {/* protected app routes */}
-        <Route element={<ProtectedRoute requireFamily={true} />}>
-          <Route path="/" element={<AppLayout />}> 
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="income" element={<IncomePage />} />
-            <Route path="goals" element={<GoalsPage />} />
-            <Route path="budget" element={<BudgetPage />} />
-            <Route path="expenses" element={<ExpensePage />} />
-            <Route path="reports" element={<ReportsPage />} />
+          {/* protected app routes */}
+          <Route element={<ProtectedRoute requireFamily={true} />}>
+            <Route path="/" element={<AppLayout />}> 
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="income" element={<IncomePage />} />
+              <Route path="goals" element={<GoalsPage />} />
+              <Route path="budget" element={<BudgetPage />} />
+              <Route path="expenses" element={<ExpensePage />} />
+              <Route path="reports" element={<ReportsPage />} />
 
-            {/* family required routes */}
-            <Route element={<FamilyRoute />}>
-              <Route path="family/settings" element={<FamilySettingsPage />} />
+              {/* family required routes */}
+              <Route element={<FamilyRoute />}>
+                <Route path="family/settings" element={<FamilySettingsPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </RouteProvider>
     </BrowserRouter>
   )
 }

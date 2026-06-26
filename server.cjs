@@ -115,7 +115,7 @@ module.exports = app
 if (require.main === module) {
   const port = process.env.PORT || 4000
   const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/nestledger'
-  mongoose.connect(uri).then(() => {
-    app.listen(port, () => console.log('Server listening on', port))
+    mongoose.connect(uri).then(() => {
+    app.listen(port, () => {})
   })
 }

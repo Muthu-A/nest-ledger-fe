@@ -159,3 +159,60 @@
   filter: invert(0) !important;
 }
 
+.chart-scroll-container {
+  overflow-x: auto;
+
+  /* Firefox */
+  scrollbar-width: none;
+
+  /* IE and Edge */
+  -ms-overflow-style: none;
+}
+
+.chart-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.month-selector {
+  display: flex;
+  align-items: center;
+}
+
+.month-picker-wrapper {
+  position: relative;
+  width: 180px;
+}
+
+.month-picker {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px 0 42px; /* Space for icon */
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.month-picker:hover {
+  border-color: #16a34a;
+}
+
+.month-picker:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.month-picker-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #16a34a;
+  pointer-events: none;
+  z-index: 2;
+}

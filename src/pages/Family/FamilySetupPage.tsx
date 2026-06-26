@@ -11,10 +11,8 @@ export default function FamilySetupPage() {
   const [openManage, setOpenManage] = useState(false)
 
   function handleCreated(familyId?: string) {
-    console.log('[FamilySetupPage] onCreated called, familyId:', familyId)
     setOpenManage(true)
   }
-  console.log("openManage",openManage);
   
   const containerStyle: React.CSSProperties = {
     minHeight: "100vh",

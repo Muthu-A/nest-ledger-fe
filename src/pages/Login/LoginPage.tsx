@@ -2,8 +2,12 @@ import { useState, type FormEvent, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import axios from "axios";
 import logo from "../../assets/nestledger_logo.svg";
 import "./login.css";
+import NotificationModal from "./NotificationModal";
+import { requestNotificationPermission } from "../../firebase/notificationService";
+import { apiPost } from "../../services/api";
 
 interface InvitationDetails {
   familyName: string;
@@ -21,12 +25,19 @@ export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false);
   const [showJoinCode, setShowJoinCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null);
+  const [invitationDetails, setInvitationDetails] =
+    useState<InvitationDetails | null>(null);
   const [isLoadingInvitation, setIsLoadingInvitation] = useState(false);
+  const [showNotificationCard, setShowNotificationCard] = useState(false);
+  const [postAuthRedirect, setPostAuthRedirect] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const auth = useAuth();
+
+  const shouldShowNotificationPrompt = () =>
+    Notification.permission !== "granted" &&
+    !localStorage.getItem("notification_dismissed");
 
   // Check if URL has invitation code
   useEffect(() => {
@@ -47,9 +58,7 @@ export default function LoginPage() {
 
     setIsLoadingInvitation(true);
     try {
-      const response = await fetch(
-        `/api/family/invite/${code.trim()}/details`
-      );
+      const response = await fetch(`/api/family/invite/${code.trim()}/details`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -115,28 +124,45 @@ export default function LoginPage() {
 
         // Wait briefly for AuthContext to reflect the joined familyId so ProtectedRoute doesn't redirect.
         const waitForFamily = async (timeout = 1000) => {
-          const start = Date.now()
+          const start = Date.now();
           while (Date.now() - start < timeout) {
-            if (auth.familyId) return true
+            if (auth.familyId) return true;
             // small delay
             // eslint-disable-next-line no-await-in-loop
-            await new Promise((r) => setTimeout(r, 50))
+            await new Promise((r) => setTimeout(r, 50));
           }
-          return false
+          return false;
+        };
+
+        await waitForFamily();
+
+        if (shouldShowNotificationPrompt()) {
+          setPostAuthRedirect("/dashboard");
+          setShowNotificationCard(true);
+        } else {
+          navigate("/dashboard");
         }
-
-        await waitForFamily()
-
-        navigate("/dashboard");
       } else if (isSignup) {
         // Normal signup mode
         if (!name.trim()) throw new Error("Name is required");
         await auth.signup(email, password, name.trim());
-        navigate("/family/setup");
+
+        if (shouldShowNotificationPrompt()) {
+          setPostAuthRedirect("/family/setup");
+          setShowNotificationCard(true);
+        } else {
+          navigate("/family/setup");
+        }
       } else {
         // Normal login mode
         await auth.login(email, password);
-        navigate("/post-login");
+
+        if (shouldShowNotificationPrompt()) {
+          setPostAuthRedirect("/post-login");
+          setShowNotificationCard(true);
+        } else {
+          navigate("/post-login");
+        }
       }
     } catch (err: any) {
       setError(err?.message || "Failed to sign in");
@@ -144,12 +170,44 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   }
-  console.log("invitationDetails",invitationDetails);
-  
+  const handleEnableNotifications = async () => {
+    const token = await requestNotificationPermission();
+
+    try {
+      if (token) {
+        await apiPost("/notifications/register-token", { token });
+      }
+    } catch (error) {
+      console.error("Failed to register notification token:", error);
+    } finally {
+      setShowNotificationCard(false);
+      if (postAuthRedirect) {
+        navigate(postAuthRedirect);
+        setPostAuthRedirect(null);
+      }
+    }
+  };
+
+  const handleDismissNotificationModal = () => {
+    localStorage.setItem("notification_dismissed", "true");
+    localStorage.setItem("notification_dismissed_at", Date.now().toString());
+    setShowNotificationCard(false);
+
+    if (postAuthRedirect) {
+      navigate(postAuthRedirect);
+      setPostAuthRedirect(null);
+    }
+  };
 
   return (
     <section className="login-page">
       <div className="login-container">
+        {showNotificationCard && (
+          <NotificationModal
+            onEnable={handleEnableNotifications}
+            onDismiss={handleDismissNotificationModal}
+          />
+        )}
         {/* Left Section - Branding */}
         <div className="login-left">
           <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
@@ -260,10 +318,20 @@ export default function LoginPage() {
                     {invitationDetails && !error && (
                       <div className="invitation-details">
                         <p style={{ color: "#16a34a", fontSize: "0.9rem" }}>
-                          ✓ Valid invitation for <strong>{invitationDetails.familyName}</strong>
+                          ✓ Valid invitation for{" "}
+                          <strong>{invitationDetails.familyName}</strong>
                         </p>
-                        <p style={{ color: "#666", fontSize: "0.8rem", marginTop: "4px" }}>
-                          Expires: {new Date(invitationDetails.expiresAt).toLocaleDateString()}
+                        <p
+                          style={{
+                            color: "#666",
+                            fontSize: "0.8rem",
+                            marginTop: "4px",
+                          }}
+                        >
+                          Expires:{" "}
+                          {new Date(
+                            invitationDetails.expiresAt,
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                     )}
@@ -289,11 +357,19 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                {showJoinCode && invitationDetails && email !== invitationDetails.email && (
-                  <p style={{ fontSize: "0.8rem", color: "#ff9800", marginTop: "4px" }}>
-                    ⚠️ This invitation is for {invitationDetails.email}
-                  </p>
-                )}
+                {showJoinCode &&
+                  invitationDetails &&
+                  email !== invitationDetails.email && (
+                    <p
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#ff9800",
+                        marginTop: "4px",
+                      }}
+                    >
+                      ⚠️ This invitation is for {invitationDetails.email}
+                    </p>
+                  )}
               </div>
 
               {/* Name Field (for signup or join code) */}
@@ -392,7 +468,9 @@ export default function LoginPage() {
               {!showJoinCode ? (
                 <>
                   <div className="divider">
-                    <span>{isSignup ? "Have an account?" : "Don't have an account?"}</span>
+                    <span>
+                      {isSignup ? "Have an account?" : "Don't have an account?"}
+                    </span>
                   </div>
 
                   <button

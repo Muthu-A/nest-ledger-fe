@@ -57,7 +57,9 @@ export default function CreateGoalModal({ open, onClose, onSubmit, initialGoal }
       setValue("category", initialGoal.category);
       setValue("targetAmount", initialGoal.targetAmount);
       setValue("currentAmount", initialGoal.currentAmount);
-      setValue("targetDate", initialGoal.targetDate);
+      setValue("targetDate", initialGoal.targetDate
+      ? new Date(initialGoal.targetDate).toISOString().split("T")[0]
+      : "",);
       setValue("notes", initialGoal.notes);
     } else {
       reset();

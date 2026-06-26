@@ -19,6 +19,7 @@ export default function VoiceAssistant({ open, onClose, onConfirmParsed }) {
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState(null)
   const [parsed, setParsed] = useState(null)
+  const [parsedText, setParsedText] = useState('')
 
   const recRef = useRef(null)
 
@@ -58,6 +59,11 @@ export default function VoiceAssistant({ open, onClose, onConfirmParsed }) {
       try {
         const result = parseVoiceCommand(transcript || '')
         setParsed(result)
+        try {
+          setParsedText(JSON.stringify(result, null, 2))
+        } catch (e) {
+          setParsedText(String(result))
+        }
       } catch (e) {
         setError(e.message)
       } finally {
@@ -68,11 +74,21 @@ export default function VoiceAssistant({ open, onClose, onConfirmParsed }) {
 
   async function handleConfirm() {
     if (!parsed) return
+    setLoading(true)
     if (onConfirmParsed) {
       try {
         await onConfirmParsed(parsed)
+        // show a small success indication
+        setTimeout(() => {
+          try {
+            setParsed(null)
+          } catch (e) {}
+        }, 250)
       } catch (e) {
         console.error(e)
+        setError(String(e))
+      } finally {
+        setLoading(false)
       }
       onClose()
       return
@@ -82,8 +98,11 @@ export default function VoiceAssistant({ open, onClose, onConfirmParsed }) {
       window.dispatchEvent(new CustomEvent('voiceCommand', { detail: parsed }))
     } catch (e) {
       console.error('Failed to emit voiceCommand event', e)
+      setError('Failed to dispatch voiceCommand event')
+    } finally {
+      setLoading(false)
+      onClose()
     }
-    onClose()
   }
 
   return (
@@ -110,20 +129,54 @@ export default function VoiceAssistant({ open, onClose, onConfirmParsed }) {
         {parsed && (
           <div>
             <strong>Detected:</strong>
-            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(parsed, null, 2)}</pre>
+            <div style={{ marginTop: 6 }}>
+              <textarea
+                aria-label="Parsed voice JSON"
+                value={parsedText}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setParsedText(v)
+                  try {
+                    const obj = JSON.parse(v)
+                    setParsed(obj)
+                    setError(null)
+                  } catch (err) {
+                    // while editing, parsed may be temporarily invalid; keep parsed=null to disable Confirm
+                    setParsed(null)
+                    setError('Parsed JSON is invalid')
+                  }
+                }}
+                style={{ width: '100%', minHeight: 140, fontFamily: 'monospace', fontSize: 12, padding: 8 }}
+              />
+            </div>
+            {parsed && (parsed.payload == null) && parsed.raw && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ marginBottom: 6, color: 'rgba(255,255,255,0.8)' }}>Parser didn't extract structured commands. You can edit the JSON above or</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fallback = { module: 'expense', payload: [{ category: String(parsed.raw).trim(), amount: 0 }], raw: parsed.raw }
+                    setParsed(fallback)
+                    setParsedText(JSON.stringify(fallback, null, 2))
+                    setError(null)
+                  }}
+                  style={{ padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#3b82f6', color: '#fff' }}
+                >Use raw text as expense</button>
+              </div>
+            )}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
           {!listening ? (
-            <Button onClick={startListening} text="Start Recording" />
+            <Button onClick={startListening} text="Start Recording" disabled={loading} />
           ) : (
-            <Button onClick={stopListening} text="Stop Recording" />
+            <Button onClick={stopListening} text="Stop Recording" disabled={loading} />
           )}
 
-          <Button onClick={onClose} text="Cancel" />
+          <Button onClick={onClose} text="Cancel" disabled={loading} />
 
-          <Button onClick={handleConfirm} text="Confirm" disabled={!parsed} />
+          <Button onClick={() => handleConfirm()} text="Confirm" disabled={!parsed || loading} loading={loading} />
         </div>
       </div>
     </Modal>

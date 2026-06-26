@@ -22,6 +22,7 @@ import useMonthlyExpenses from "../../hooks/useMonthlyExpenses";
 import DashboardSkeleton from "./DashboardSkeleton";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { CalendarDays } from "lucide-react";
 
 const defaultSummary: DashboardSummary = {
   month: "",
@@ -261,8 +262,6 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  console.log("currentMonthData", currentMonthData);
-
   // Always render the dashboard shell. Show empty placeholders when API returns no data.
 
   return (
@@ -273,23 +272,26 @@ export default function DashboardPage() {
           <h1 style={{ color: "var(--text)" }}>Monthly summary</h1>
         </div>
         <div className="month-selector">
-          {/* month select removed in favor of DatePicker */}
-          <DatePicker
-            selected={
-              selectedMonth ? new Date(`${selectedMonth}-01`) : new Date()
-            }
-            onChange={(date) => {
-              if (!date) return;
+          <div className="month-picker-wrapper">
+            <CalendarDays className="month-picker-icon" size={18} />
 
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, "0");
+            <DatePicker
+              selected={
+                selectedMonth ? new Date(`${selectedMonth}-01`) : new Date()
+              }
+              onChange={(date) => {
+                if (!date) return;
 
-              setSelectedMonth(`${year}-${month}`);
-            }}
-            showMonthYearPicker
-            dateFormat="MMMM yyyy"
-            className="month-picker"
-          />
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+
+                setSelectedMonth(`${year}-${month}`);
+              }}
+              showMonthYearPicker
+              dateFormat="MMMM yyyy"
+              className="month-picker"
+            />
+          </div>
         </div>
       </div>
 
@@ -351,7 +353,7 @@ export default function DashboardPage() {
           </div>
           <div className="line-chart">
             {chartData.length ? (
-              <div style={{ overflowX: "auto" }}>
+              <div className="chart-scroll-container">
                 <div style={{ minWidth: 900 }}>
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart

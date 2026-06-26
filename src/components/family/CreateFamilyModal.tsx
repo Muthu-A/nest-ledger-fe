@@ -25,7 +25,6 @@ export default function CreateFamilyModal({ open, onClose, onCreated }: Props) {
     setLoading(true);
     try {
       const id = await auth.createFamily(name);
-      console.log('[CreateFamilyModal] created family id:', id)
       // close current modal first, then notify parent to open management modal
       onClose();
       setTimeout(() => onCreated?.(id || undefined), 50)

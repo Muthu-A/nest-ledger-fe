@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRealtime } from "../../context/RealtimeContext";
 import useAuth from "../../hooks/useAuth";
+import notificationSound from "../../assets/mixkit-correct-answer-tone-2870.wav";
 
-function playBeep() {
+function playOscillator() {
   try {
     const AudioCtx =
       (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -24,6 +25,26 @@ function playBeep() {
   } catch (e) {
     // ignore audio errors
   }
+}
+
+function playBeep(audio: HTMLAudioElement | null) {
+  if (audio) {
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          playOscillator();
+        });
+      }
+      return;
+    } catch (e) {
+      // ignore audio playback errors
+    }
+  }
+
+  playOscillator();
 }
 
 const activityStyles = {
@@ -49,17 +70,32 @@ const activityStyles = {
   },
 };
 
-export default function ActivityToast() {
+export default function ActivityToast({ soundEnabled }: { soundEnabled: boolean }) {
   const { activities } = useRealtime();
-  console.log("activities", activities);
   const { user } = useAuth();
-  console.log("user", user);
 
   const seenRef = useRef(new Set<string>());
   const queueRef = useRef<any[]>([]);
   const [current, setCurrent] = useState<any | null>(null);
   const timerRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   // removed unused seenPairRef
+
+  const currentStyle = useMemo(() => {
+    const type =
+      current?.meta?.type?.toLowerCase() ||
+      current?.type?.toLowerCase() ||
+      "default";
+    return activityStyles[type] || activityStyles.default;
+  }, [current]);
+
+  useEffect(() => {
+    if (!soundEnabled) return;
+    if (!audioRef.current) {
+      audioRef.current = new Audio(notificationSound);
+      audioRef.current.volume = 0.7;
+    }
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (!activities || activities.length === 0) return;
@@ -104,9 +140,9 @@ export default function ActivityToast() {
       return;
     }
     setCurrent(next);
-    // play beep
-    playBeep();
-    // auto-hide after 3500ms
+    // play notification sound
+    playBeep(audioRef.current);
+    // auto-hide after 5500ms
     timerRef.current = window.setTimeout(() => {
       setCurrent(null);
       timerRef.current = null;
@@ -114,7 +150,7 @@ export default function ActivityToast() {
       setTimeout(() => {
         if (queueRef.current.length > 0) showNext();
       }, 150);
-    }, 3500);
+    }, 5500);
   }
 
   useEffect(() => {
@@ -155,23 +191,22 @@ export default function ActivityToast() {
             width: 40,
             height: 40,
             borderRadius: 8,
-            background: "rgba(255,255,255,0.06)",
+            background: currentStyle.color + "22",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 18,
           }}
         >
-          🔔
+          <span style={{ color: currentStyle.color }}>{currentStyle.icon}</span>
         </div>
-
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600 }}>
             {current?.message ?? current?.title ?? "Activity"}
           </div>
           {current?.meta?.type && (
             <div style={{ opacity: 0.85, marginTop: 6, fontSize: 13 }}>
-              {current?.meta?.type}
+              {current?.meta?.type && current?.meta?.type.replace(/\b\w/g, (c) => c.toUpperCase())}
             </div>
           )}
         </div>

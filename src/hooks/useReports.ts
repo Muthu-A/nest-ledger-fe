@@ -9,12 +9,9 @@ export function useReports(): Report[] {
     let active = true
 
     async function loadReports() {
-      console.log("called");
-      
       try {
         const data = await reportService.getAll()
-        console.log("data",data);
-        
+
         if (active) {
           setReports(data)
         }

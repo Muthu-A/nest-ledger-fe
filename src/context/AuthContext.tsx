@@ -3,7 +3,7 @@ import { authService } from '../services/authService'
 import { familyService } from '../services/familyService'
 
 // module-level in-flight bootstrap promise to dedupe concurrent bootstraps
-let bootstrapInFlight: Promise<any> | null = null
+let bootstrapInFlight: Promise<unknown> | null = null
 
 export type User = {
   id: string
@@ -23,6 +23,35 @@ export type Family = {
   id: string
   name: string
   members: Member[]
+}
+
+function normalizeFamily(raw: unknown): Family | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  let f: Record<string, unknown> = r
+  if ('family' in r && typeof r.family === 'object') f = r.family as Record<string, unknown>
+  if ('data' in r && typeof r.data === 'object') f = r.data as Record<string, unknown>
+
+  const id = String(f['id'] ?? f['_id'] ?? f['familyId'] ?? r['familyId'] ?? r['id'] ?? '')
+  if (!id) return null
+
+  const ownerId = String(f['ownerId'] ?? '')
+  const name = String(f['name'] ?? '')
+
+  const membersRaw = f['members']
+  const members: Member[] = Array.isArray(membersRaw)
+    ? membersRaw.map((m) => {
+        const mm = m as Record<string, unknown>
+        return {
+          id: String(mm['id'] ?? mm['_id'] ?? ''),
+          name: String(mm['name'] ?? ''),
+          email: String(mm['email'] ?? ''),
+          role: (mm['role'] as Member['role']) ?? 'viewer',
+        }
+      })
+    : []
+
+  return { id, ownerId, name, members }
 }
 
 type AuthContextType = {
@@ -87,20 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     bootstrapInFlight = (async () => {
       try {
         const profile = await authService.me(t)
-        console.log('[Auth] bootstrap profile:', profile)
         setUser(profile.user)
         setToken(t)
         if (profile.familyId) {
           const fam = await familyService.getFamily(profile.familyId, t)
-        const normalize = (raw: any) => {
-          if (!raw) return null
-          let f = raw
-          if (raw.family) f = raw.family
-          if (raw.data) f = raw.data
-          const id = f.id ?? f._id ?? f.familyId ?? raw.familyId ?? raw.id
-          return { ...(f as any), id }
-        }
-        const normFam = normalize(fam)
+        const normFam = normalizeFamily(fam)
         setFamily(normFam || null)
         const me = normFam?.members?.find((m) => m.email === profile.user.email) ?? null
         setUserRole(me?.role ?? null)
@@ -146,25 +166,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       const res = await authService.login(email, password)
-      console.log('[Auth] login response:', res)
       localStorage.setItem(LOCAL_TOKEN_KEY, res.token)
       setToken(res.token)
       // bootstrap will populate user and family where available; capture profile
       const profile = await bootstrap(res.token)
-      console.log('[Auth] after bootstrap, profile:', profile, 'family state:', family)
 
       // determine effective family id: prefer profile.familyId, then login response
-      const resp: any = res
-      let effectiveFamilyId: string | null = profile?.familyId ?? resp.familyId ?? null
+      const resp = res as Record<string, unknown>
+      let effectiveFamilyId: string | null = profile?.familyId ?? (resp['familyId'] as string | undefined) ?? null
 
       // if we still don't have a full family object but login returned familyId, fetch it
-      if (!profile?.familyId && resp.familyId) {
+      if (!profile?.familyId && resp['familyId']) {
         try {
-          const fam = await familyService.getFamily(resp.familyId, resp.token)
+          const fam = await familyService.getFamily(resp['familyId'] as string, resp['token'] as string)
           setFamily(fam || null)
-          const me = fam?.members?.find((m: any) => m.email === resp.user?.email) ?? null
-          setUserRole(me?.role ?? (resp.role as Member['role']) ?? 'owner')
-          effectiveFamilyId = fam?.id ?? resp.familyId
+          const famObj = fam as Family | null
+          const respUserEmail = String((resp['user'] as Record<string, unknown>)?.['email'] ?? '')
+          const me = famObj?.members?.find((m: Member) => m.email === respUserEmail) ?? null
+          setUserRole(me?.role ?? (resp['role'] as Member['role']) ?? 'owner')
+          effectiveFamilyId = famObj?.id ?? (resp['familyId'] as string)
         } catch (err) {
           // ignore
         }
@@ -201,29 +221,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token || !user) throw new Error('Not authenticated')
     try {
       // do not flip global auth loading here — UI components use local modal loading
-      const created: any = await familyService.createFamily(name, token)
-      let fam: any = created
+      const created = await familyService.createFamily(name, token)
+      let fam = created as unknown
       // backend may return only { familyId: '...' } — fetch full family in that case
       if (created && typeof created === 'object' && 'familyId' in created) {
         try {
-          fam = await familyService.getFamily(created.familyId, token)
+          fam = await familyService.getFamily((created as Record<string, unknown>)['familyId'] as string, token)
         } catch (err) {
-          fam = { id: created.familyId }
+          fam = { id: (created as Record<string, unknown>)['familyId'] }
         }
       }
-      const normalize = (raw: any) => {
-        if (!raw) return null
-        let f = raw
-        if (raw.family) f = raw.family
-        if (raw.data) f = raw.data
-        const id = f.id ?? f._id ?? f.familyId ?? raw.familyId ?? raw.id
-        return { ...(f as any), id }
-      }
-      const normFam = normalize(fam)
+      const normFam = normalizeFamily(fam)
       setFamily(normFam || null)
-      const me = normFam?.members?.find((m: any) => m.email === user?.email) ?? null
+      const me = normFam?.members?.find((m) => m.email === user?.email) ?? null
       setUserRole(me?.role ?? 'owner')
-      return fam?.id || fam?._id || created?.familyId || ''
+      const famRec = fam as Record<string, unknown>
+      const createdRec = created as Record<string, unknown>
+      return String(famRec['id'] ?? famRec['_id'] ?? createdRec['familyId'] ?? '')
     } finally {
       setIsLoading(false)
     }
@@ -245,27 +259,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // debug: log tokens to help trace mismatches
-      // eslint-disable-next-line no-console
-      console.log('[Auth] joinFamily using token:', t, 'state token:', token, 'localStorage:', localStorage.getItem(LOCAL_TOKEN_KEY))
       const fam = await familyService.joinFamily(code, t as string)
-      console.log("11111-->",fam);
       
       // keep global auth loading untouched
-      const normalize = (raw: any) => {
-        if (!raw) return null
-        let f = raw
-        if (raw.family) f = raw.family
-        if (raw.data) f = raw.data
-        const id = f.id ?? f._id ?? f.familyId ?? raw.familyId ?? raw.id
-        return { ...(f as any), id }
-      }
-      const normFam = normalize(fam)
+      const normFam = normalizeFamily(fam)
       setFamily(normFam || null)
       const me = normFam?.members?.find((m) => m.email === user?.email) ?? null
       setUserRole(me?.role ?? null)
-      console.log("'222222",normFam);
       
-      return normFam?.id ?? (normFam as any)?.familyId ?? ''
+      
+      return normFam?.id ?? (normFam as unknown as Record<string, unknown>)['familyId'] ?? ''
     } finally {
       setIsLoading(false)
     }
@@ -285,15 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token || !family) throw new Error('No family')
     try {
       const fam = await familyService.removeMember(family.id, memberId, token)
-      const normalize = (raw: any) => {
-        if (!raw) return null
-        let f = raw
-        if (raw.family) f = raw.family
-        if (raw.data) f = raw.data
-        const id = f.id ?? f._id ?? f.familyId ?? raw.familyId ?? raw.id
-        return { ...(f as any), id }
-      }
-      const normFam = normalize(fam)
+      const normFam = normalizeFamily(fam)
       setFamily(normFam)
     } finally {
       setIsLoading(false)
@@ -304,15 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token || !family) throw new Error('No family')
     try {
       const fam = await familyService.changeMemberRole(family.id, memberId, role, token)
-      const normalize = (raw: any) => {
-        if (!raw) return null
-        let f = raw
-        if (raw.family) f = raw.family
-        if (raw.data) f = raw.data
-        const id = f.id ?? f._id ?? f.familyId ?? raw.familyId ?? raw.id
-        return { ...(f as any), id }
-      }
-      const normFam = normalize(fam)
+      const normFam = normalizeFamily(fam)
       setFamily(normFam)
     } finally {
       setIsLoading(false)
@@ -323,18 +310,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token || !family?.id) return
     try {
       const fam = await familyService.getFamily(family.id, token)
-      const normalize = (raw: any) => {
-        if (!raw) return null
-        let f = raw
-        if (raw.family) f = raw.family
-        if (raw.data) f = raw.data
-        const id = f.id ?? f._id ?? raw.familyId ?? raw.id
-        return { ...(f as any), id }
-      }
-      const normFam = normalize(fam)
+      const normFam = normalizeFamily(fam)
       
       setFamily(normFam)
-      const me = normFam?.members?.find((m: any) => m.email === user?.email) ?? null
+      const me = normFam?.members?.find((m) => m.email === user?.email) ?? null
       setUserRole(me?.role ?? null)
       return fam
     } catch (err) {
