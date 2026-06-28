@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Target,
   CheckCircle,
@@ -59,15 +59,19 @@ export default function GoalsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-  const { data: goalsResp, isLoading, refetch } = useQuery({
-    queryKey: ['goals'],
+  const {
+    data: goalsResp,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["goals"],
     queryFn: () => goalService.getAllGoals(),
-  })
+  });
 
   // normalize response shape
-  const respData = (goalsResp && (goalsResp.data ?? goalsResp)) || []
+  const respData = (goalsResp && (goalsResp.data ?? goalsResp)) || [];
 
   // map API response to local Goal interface
   const mappedGoals = respData.map((g: any) => ({
@@ -81,22 +85,14 @@ export default function GoalsPage() {
     status: g.status,
     progress: g.progress,
     remainingAmount: g.remainingAmount,
-  })) as Goal[]
+  })) as Goal[];
 
-  const goals = mappedGoals
+  const goals = mappedGoals;
 
-  const totalTarget = goals.reduce(
-    (sum, goal) => sum + goal.targetAmount,
-    0,
-  );
-  const totalSaved = goals.reduce(
-    (sum, goal) => sum + goal.currentAmount,
-    0,
-  );
+  const totalTarget = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const totalSaved = goals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   const totalGoals = goals.length;
-  const activeGoals = goals.filter(
-    (goal) => goal.status === "ACTIVE",
-  ).length;
+  const activeGoals = goals.filter((goal) => goal.status === "ACTIVE").length;
 
   const chartData = goals.map((goal) => ({
     name: goal.goalName,
@@ -157,7 +153,7 @@ export default function GoalsPage() {
         setAmount("");
         setNotes("");
         setIsContributionOpen(false);
-        await queryClient.invalidateQueries(['goals'])
+        await queryClient.invalidateQueries(["goals"]);
       }
     } catch (error) {
       console.error("Failed to add contribution:", error);
@@ -180,7 +176,7 @@ export default function GoalsPage() {
       if (response.success) {
         setShowGoalModal(false);
         setEditingGoal(null);
-        await queryClient.invalidateQueries(['goals'])
+        await queryClient.invalidateQueries(["goals"]);
       }
     } catch (error) {
       console.error("Failed to save goal:", error);
@@ -194,11 +190,13 @@ export default function GoalsPage() {
       setLoading(true);
       const response = await goalService.deleteGoal(goalId);
       if (response.success) {
-        await queryClient.invalidateQueries(['goals'])
+        await queryClient.invalidateQueries(["goals"]);
       }
     } catch (error) {
       console.error("Failed to delete goal:", error);
     } finally {
+      setShowDeleteModal(false);
+      setDeleteId(null);
       setLoading(false);
     }
   };
@@ -230,7 +228,7 @@ export default function GoalsPage() {
         if (selectedGoal && selectedGoal.goalId) {
           handleViewContributions(selectedGoal);
         }
-        await queryClient.invalidateQueries(['goals'])
+        await queryClient.invalidateQueries(["goals"]);
       }
     } catch (error) {
       console.error("Failed to delete contribution:", error);
@@ -255,7 +253,7 @@ export default function GoalsPage() {
         if (selectedGoal && selectedGoal.goalId) {
           handleViewContributions(selectedGoal);
         }
-        await queryClient.invalidateQueries(['goals'])
+        await queryClient.invalidateQueries(["goals"]);
       }
     } catch (error) {
       console.error("Failed to update contribution:", error);
@@ -263,6 +261,9 @@ export default function GoalsPage() {
       setLoading(false);
     }
   };
+
+  const activeGoalsList = goals.filter((goal) => goal.status === "ACTIVE");
+  const completedGoals = goals.filter((goal) => goal.status === "COMPLETED");
 
   if (isLoading || loading) {
     return <GoalsSkeleton />;
@@ -296,106 +297,225 @@ export default function GoalsPage() {
       {/* Progress Chart */}
       <GoalProgressChart data={chartData} />
       {/* Goal Cards */}
+      <div className="card-header">
+        <h3>Active Goals</h3>
+      </div>
       <div className="goal-grid">
-        {goals.map((goal) => {
-          const progress = (goal.currentAmount / goal.targetAmount) * 100;
+        {activeGoalsList &&
+          activeGoalsList.length > 0 &&
+          activeGoalsList.map((goal) => {
+            const progress = (goal.currentAmount / goal.targetAmount) * 100;
 
-          return (
-            <div key={goal.goalId || goal.id} className="goal-card">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <h3>{goal.goalName}</h3>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    style={{
-                      color: "grey",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                    title="Edit"
-                    onClick={() => handleEditGoal(goal)}
-                  >
-                    <Pencil size={18} />
-                  </button>
-                  <button
-                    style={{
-                      color: "red",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                    title="Delete"
-                    onClick={() =>
-                      handleDeleteGoal(goal.goalId || goal.id || "")
-                    }
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="goal-stats">
-                <div>
-                  <span>Saved</span>
-                  <strong>₹{goal.currentAmount.toLocaleString("en-IN")}</strong>
-                </div>
-
-                <div>
-                  <span>Target</span>
-                  <strong>₹{goal.targetAmount.toLocaleString("en-IN")}</strong>
-                </div>
-              </div>
-
-              <div className="progress-bar">
+            return (
+              <div key={goal.goalId || goal.id} className="goal-card">
                 <div
-                  className="progress-fill"
                   style={{
-                    width: `${progress}%`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
                   }}
-                />
+                >
+                  <h3>{goal.goalName}</h3>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      style={{
+                        color: "grey",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                      title="Edit"
+                      onClick={() => handleEditGoal(goal)}
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    <button
+                      style={{
+                        color: "red",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                      title="Delete"
+                      onClick={() => {
+                        setShowDeleteModal(true);
+                        setDeleteId(goal.goalId || goal.id || "");
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="goal-stats">
+                  <div>
+                    <span>Saved</span>
+                    <strong>
+                      ₹{goal.currentAmount.toLocaleString("en-IN")}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Target</span>
+                    <strong>
+                      ₹{goal.targetAmount.toLocaleString("en-IN")}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${progress}%`,
+                    }}
+                  />
+                </div>
+
+                <div
+                  className="category-footer"
+                  style={{ marginBottom: "10px" }}
+                >
+                  <p className="progress-text">
+                    {progress.toFixed(0)}% Completed
+                  </p>
+                  <p className="progress-text">
+                    Target Date:{" "}
+                    {goal.targetDate
+                      ? new Date(goal.targetDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "-"}
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    text="Add Contribution"
+                    onClick={() => handleAddContribution(goal)}
+                    loading={false}
+                  />
+                  <Button
+                    text="History"
+                    onClick={() => handleViewContributions(goal)}
+                    loading={false}
+                  />
+                </div>
+              </div>
+            );
+          })}
+      </div>
+      {activeGoalsList.length === 0 && (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <span>📈</span>
+          <p>No Active Goals Found.</p>
+        </div>
+      )}
+
+      
+      {completedGoals.length > 0 && (
+       <div className="card-header">
+        <h3>Completed Goals</h3>
+      </div>
+      )}
+      {completedGoals.length > 0 && (
+      <div className="goal-grid">
+        {completedGoals?.map((goal) => (
+          <div key={goal.goalId || goal.id} className="completed-goal-card">
+            <div className="celebration-bg"></div>
+
+            <div className="completed-header">
+              <div>
+                <span className="completed-badge">🎉 GOAL ACHIEVED</span>
+                <h3>{goal.goalName}</h3>
               </div>
 
-              <div className="category-footer" style={{ marginBottom: "10px" }}>
-                <p className="progress-text">
-                  {progress.toFixed(0)}% Completed
-                </p>
-                <p className="progress-text">
-                  Target Date:{" "}
-                  {goal.targetDate
-                    ? new Date(goal.targetDate).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "-"}
-                </p>
+              <div className="trophy">🏆</div>
+            </div>
+
+            <div className="completed-message">
+              Congratulations! You reached your savings target.
+            </div>
+
+            <div className="goal-stats">
+              <div>
+                <span>Saved</span>
+                <strong>₹{goal.currentAmount.toLocaleString("en-IN")}</strong>
               </div>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                <Button
-                  text="Add Contribution"
-                  onClick={() => handleAddContribution(goal)}
-                  loading={false}
-                />
-                <Button
-                  text="History"
-                  onClick={() => handleViewContributions(goal)}
-                  loading={false}
-                />
+              <div>
+                <span>Target</span>
+                <strong>₹{goal.targetAmount.toLocaleString("en-IN")}</strong>
               </div>
             </div>
-          );
-        })}
+
+            <div className="progress-bar completed-progress">
+              <div className="progress-fill completed-fill"></div>
+            </div>
+
+            <div className="completed-footer">
+              <span>✅ 100% Completed</span>
+
+              <span>
+                {goal.targetDate
+                  ? new Date(goal.targetDate).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "-"}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
+      )}
+
+      {showDeleteModal && deleteId && (
+        <Modal
+          title="Delete Goal"
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeleteId(null);
+          }}
+        >
+          <div style={{ color: "var(--ink)", marginBottom: "20px" }}>
+            <p>Are you sure you want to delete this Goal?</p>
+            <p
+              style={{
+                fontSize: "0.9rem",
+                color: "var(--ink-soft)",
+                marginTop: "10px",
+              }}
+            >
+              This action cannot be undone.
+            </p>
+          </div>
+          <div className="form-actions">
+            <button
+              className="button secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteId(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="button primary"
+              style={{ backgroundColor: "#ef4444" }}
+              onClick={() => handleDeleteGoal(deleteId)}
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
       {isContributionOpen && (
         <Modal
           title="Add Contribution"
@@ -560,7 +680,6 @@ export default function GoalsPage() {
         onSubmit={handleCreateGoal}
         initialGoal={editingGoal}
       />
-      
     </div>
   );
 }
@@ -605,7 +724,6 @@ function EditContributionForm({
           onClick={() => onSave(amount, notes)}
         />
       </div>
-      
     </div>
   );
 }

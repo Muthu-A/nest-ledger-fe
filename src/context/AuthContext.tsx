@@ -287,9 +287,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function removeMember(memberId: string) {
     if (!token || !family) throw new Error('No family')
     try {
-      const fam = await familyService.removeMember(family.id, memberId, token)
-      const normFam = normalizeFamily(fam)
-      setFamily(normFam)
+      await familyService.removeMember(family.id, memberId, token)
+      // const normFam = normalizeFamily(fam)
+      // setFamily(normFam)
     } finally {
       setIsLoading(false)
     }

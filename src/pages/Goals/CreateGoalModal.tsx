@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import Modal from "../../components/common/Modal";
 import { useEffect } from "react";
+import "./goals.css";
 
 interface CreateGoalForm {
   goalName: string;

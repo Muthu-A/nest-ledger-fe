@@ -323,3 +323,176 @@
   flex: 1;
   height: 38px;
 }
+.completed-goal-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 22px;
+  color: #fff;
+  background: linear-gradient(135deg, #0f9d58, #34a853, #81c784);
+  box-shadow: 0 10px 35px rgba(52, 168, 83, 0.35);
+  transition: 0.35s;
+}
+
+.completed-goal-card:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
+.celebration-bg {
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+}
+
+.celebration-bg::before,
+.celebration-bg::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+
+.celebration-bg::before {
+  width: 80px;
+  height: 80px;
+  left: -30px;
+  bottom: -20px;
+}
+
+.celebration-bg::after {
+  width: 50px;
+  height: 50px;
+  right: 30px;
+  top: 20px;
+}
+
+.completed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+}
+
+.completed-header h3 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  color: #fff;
+}
+
+.completed-badge {
+  background: rgba(255,255,255,.22);
+  backdrop-filter: blur(10px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.trophy {
+  font-size: 42px;
+  animation: trophyBounce 2s infinite;
+}
+
+.completed-message {
+  margin: 18px 0;
+  font-size: 15px;
+  opacity: .95;
+}
+
+.completed-goal-card .goal-stats {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.completed-goal-card .goal-stats span {
+  display: block;
+  color: rgba(255,255,255,.8);
+  font-size: 13px;
+}
+
+.completed-goal-card .goal-stats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.completed-progress {
+  background: rgba(255,255,255,.25);
+  height: 10px;
+  border-radius: 20px;
+}
+
+.completed-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #ffe082, #ffd54f, #fff176);
+  box-shadow: 0 0 15px rgba(255,255,255,.6);
+}
+
+.completed-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: rgba(255,255,255,.9);
+}
+
+@keyframes trophyBounce {
+  0%,100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.form-grid input:hover,
+.form-grid select:hover,
+.form-grid textarea:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15),
+              0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Better dropdown arrow */
+.form-grid select {
+  appearance: none;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}

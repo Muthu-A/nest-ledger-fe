@@ -80,6 +80,18 @@ const styles = {
     whiteSpace: "nowrap" as const,
     boxShadow: "0 2px 4px rgba(16, 185, 129, 0.15)",
   },
+  badgeRemove: {
+    padding: "6px 12px",
+    background: "#df3838",
+    color: "#ffffff",
+    borderRadius: 6,
+    fontWeight: 600,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    whiteSpace: "nowrap" as const,
+    boxShadow: "0 2px 4px rgba(16, 185, 129, 0.15)",
+    cursor:'pointer'
+  },
   membersGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
@@ -171,6 +183,8 @@ export default function MemberCard({
   onRemove,
   onChangeRole,
 }: Props) {
+  console.log('member',member);
+  
   return (
     <div style={{...styles.section,marginBottom: 10}}>
       <div style={styles.ownerCard}>
@@ -187,16 +201,8 @@ export default function MemberCard({
             {member?.userId?.email ?? member?.email}
           </p>
         </div>
-        <div style={styles.badge}>{member.role}</div>
         {isOwner && (
-          <>
-            <button
-              className="button secondary"
-              onClick={() => onRemove?.(member.id)}
-            >
-              Remove
-            </button>
-          </>
+           <div style={styles.badgeRemove} onClick={() => onRemove?.(member.userId._id)}>{'Remove'}</div>
         )}
       </div>
     </div>

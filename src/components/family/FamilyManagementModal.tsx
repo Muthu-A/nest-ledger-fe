@@ -4,6 +4,8 @@ import useAuth from "../../hooks/useAuth";
 import Button from "../common/Button";
 import MemberCard from "../common/MemberCard";
 import { useLocation, useNavigate } from "react-router-dom";
+import DeleteConfirmModal from "../common/DeleteConfirmModal";
+import {FamilySettingsSkeleton} from "../family/FamilySettingsSkeleton";
 
 type Props = {
   open: boolean;
@@ -21,6 +23,8 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const isOwner = auth.user?.id === auth.family?.ownerId;
 
   // useEffect(() => {
@@ -73,14 +77,21 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
   }
 
   async function handleRemove(id: string) {
-    if (!id.startsWith("temp-")) {
-      setLoading(true);
+    // if (!id.startsWith("temp-")) {
+    setLoading(true);
+    try {
       await auth.removeMember(id);
       setLoading(false);
-      setMembers(auth.family?.members ?? []);
-      return;
+      const response: any = await auth.refreshFamily();
+      setMembers(response?.members ?? []);
+      // setMembers(auth.family?.members ?? []);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteId(null);
     }
-    setMembers((s) => s.filter((m: any) => m.id !== id));
+    // } else setMembers((s) => s.filter((m: any) => m.id !== id));
   }
 
   async function handleProceed() {
@@ -95,15 +106,18 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
     }
     setLoading(false);
     onClose();
-    navigate("/dashboard");
+    if (location.pathname === "/family/setup") navigate("/dashboard");
   }
 
   const styles = {
     container: {
-      display: "flex",
-      flexDirection: "column" as const,
-      gap: 24,
+      height:'70vh',
+      maxHeight: "75vh",
+      overflowY: "auto",
+      paddingRight: "6px", // prevents text from touching scrollbar
+      scrollbarWidth: "none", // Firefox
     },
+
     section: {
       display: "flex",
       flexDirection: "column" as const,
@@ -255,6 +269,20 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
     },
   };
 
+  if (loading) {
+  return (
+    <Modal title="Family settings" onClose={onClose}>
+      <div className="modal-scroll" style={{ height:'70vh',
+      maxHeight: "75vh",
+      overflowY: "auto",
+      paddingRight: "6px", // prevents text from touching scrollbar
+      scrollbarWidth: "none",}}>
+        <FamilySettingsSkeleton />
+      </div>
+    </Modal>
+  );
+}
+
   return (
     <Modal title="Family settings" onClose={onClose}>
       <div style={styles.container}>
@@ -290,8 +318,11 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
                 <MemberCard
                   key={m.id}
                   member={m}
-                  isOwner={auth.userRole === "owner"}
-                  onRemove={() => handleRemove(m.id)}
+                  isOwner={auth.user.id === auth.family?.ownerId}
+                  onRemove={(id) => {
+                    setShowDeleteModal(true);
+                    setDeleteId(id);
+                  }}
                 />
               ))}
             </div>
@@ -302,96 +333,108 @@ export default function FamilyManagementModal({ open, onClose }: Props) {
           )}
         </div>
 
+        {showDeleteModal && (
+          <DeleteConfirmModal
+            title={"Delete User"}
+            description={"User"}
+            onClose={() => {
+              setShowDeleteModal(false);
+              setDeleteId(null);
+            }}
+            handleSubmit={() => handleRemove(deleteId as string)}
+          />
+        )}
+
         {/* Add Member Section */}
-        {isOwner && ( 
-        <div style={styles.section}>
-          {!showAddForm ? (
-            <button
-              onClick={() => setShowAddForm(true)}
-              style={styles.toggleAddButton}
-              onMouseEnter={(e) => {
-                Object.assign(
-                  e.currentTarget.style,
-                  styles.toggleAddButtonHover,
-                );
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#d1d5db";
-                e.currentTarget.style.color = "#1f2937";
-                e.currentTarget.style.background = "#ffffff";
-              }}
-            >
-              + Add family member
-            </button>
-          ) : (
-            <div style={styles.addFormContainer}>
-              <div style={styles.formInputs}>
-                <input
-                  placeholder="Full name (optional)"
-                  style={{
-                    ...styles.input,
-                  }}
-                  type="text"
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAdd();
-                    }
-                  }}
-                />
-                <input
-                  placeholder="Email address"
-                  style={{
-                    ...styles.input,
-                  }}
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAdd();
-                    }
-                  }}
-                />
-              </div>
-
-              {addSuccess && (
-                <div style={styles.successMessage}>
-                  ✓ Member added. They'll be invited after you finish.
-                </div>
-              )}
-
-              <div style={styles.formRow}>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  style={{
-                    ...styles.toggleAddButton,
-                    flex: 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f3f4f6";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#ffffff";
-                  }}
-                >
-                  Cancel
-                </button>
-                <div style={styles.addButton}>
-                  <Button
-                    text="Add member"
-                    onClick={() => handleAdd()}
-                    loading={loading}
+        {isOwner && (
+          <div style={styles.section}>
+            {!showAddForm ? (
+              <button
+                onClick={() => setShowAddForm(true)}
+                style={styles.toggleAddButton}
+                onMouseEnter={(e) => {
+                  Object.assign(
+                    e.currentTarget.style,
+                    styles.toggleAddButtonHover,
+                  );
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.color = "#1f2937";
+                  e.currentTarget.style.background = "#ffffff";
+                }}
+              >
+                + Add family member
+              </button>
+            ) : (
+              <div style={styles.addFormContainer}>
+                <div style={styles.formInputs}>
+                  <input
+                    placeholder="Full name (optional)"
+                    style={{
+                      ...styles.input,
+                    }}
+                    type="text"
+                    value={newName}
+                    onChange={(event) => setNewName(event.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAdd();
+                      }
+                    }}
+                  />
+                  <input
+                    placeholder="Email address"
+                    style={{
+                      ...styles.input,
+                    }}
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAdd();
+                      }
+                    }}
                   />
                 </div>
+
+                {addSuccess && (
+                  <div style={styles.successMessage}>
+                    ✓ Member added. They'll be invited after you finish.
+                  </div>
+                )}
+
+                <div style={styles.formRow}>
+                  <button
+                    onClick={() => setShowAddForm(false)}
+                    style={{
+                      ...styles.toggleAddButton,
+                      flex: 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f3f4f6";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ffffff";
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <div style={styles.addButton}>
+                    <Button
+                      text="Add member"
+                      onClick={() => handleAdd()}
+                      loading={loading}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-)}
+            )}
+          </div>
+        )}
         {isOwner && (
           <div style={styles.actionContainer}>
             <Button

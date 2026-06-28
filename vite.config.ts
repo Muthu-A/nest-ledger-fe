@@ -11,6 +11,7 @@ export default defineConfig({
       injectRegister: "auto",
       devOptions: {
         enabled: true, // Enables PWA support during development
+        suppressWarnings: true, // Hide dev-mode Workbox glob warnings when no assets are present
       },
       manifest: {
         name: "Nest Ledger",

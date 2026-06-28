@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "dev": "vite",
+    "dev": "vite --host",
     "test": "jest",
     "test:unit": "jest --testPathPattern=src/tests/unit",
     "test:integration": "jest --testPathPattern=src/tests/integration",

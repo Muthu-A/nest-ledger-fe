@@ -5,9 +5,6 @@ import { OfflinePage } from './pages/Offline/OfflinePage'
 import PWAInstallPrompt from './components/common/PWAInstallPrompt'
 
 function App() {
-  window.addEventListener("beforeinstallprompt", (e) => {
-  console.log("🔥 beforeinstallprompt fired", e);
-});
   return (
     <AuthProvider>
       <OfflinePage />
